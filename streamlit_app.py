@@ -1,28 +1,37 @@
 import streamlit as st
 import json
-from streamlit_javascript import st_javascript
+import pandas as pd
+import io
 
-# Load the JSON data
-with open('elisa_kits_data.json', 'r') as file:
-    data = json.load(file)
+def json_to_dataframe(json_data):
+    # Extract organic_results from the JSON data
+    organic_results = json_data.get('organic_results', [])
+    
+    # Convert to DataFrame
+    df = pd.json_normalize(organic_results)
+    
+    return df
 
-# Extract organic results
-organic_results = data['organic_results']
+st.title('JSON to CSV Converter')
 
-# Create Streamlit app
-st.set_page_config(page_title="ELISA Kits Search Results", layout="wide")
+uploaded_file = st.file_uploader("Choose a JSON file", type="json")
 
-# Use the custom React component
-st_javascript("""
-import React from 'react';
-import ReactDOM from 'react-dom';
-import ElisaKitsTable from './elisa-kits-table';
-
-ReactDOM.render(
-  <ElisaKitsTable data={organic_results} />,
-  document.getElementById('react-table')
-)
-""")
-
-# Create a placeholder for the React component
-st.components.v1.html('<div id="react-table"></div>', height=600)
+if uploaded_file is not None:
+    # Read the file
+    json_data = json.load(uploaded_file)
+    
+    # Convert JSON to DataFrame
+    df = json_to_dataframe(json_data)
+    
+    # Display the data
+    st.write("### Data Preview")
+    st.dataframe(df)
+    
+    # Provide download link for CSV
+    csv = df.to_csv(index=False)
+    st.download_button(
+        label="Download data as CSV",
+        data=csv,
+        file_name="converted_data.csv",
+        mime="text/csv",
+    )
